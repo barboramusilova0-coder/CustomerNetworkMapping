@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Network Atlas</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--red9:#6f0b1c;--red7:#a3122b;--red1:#f8e2e6;--iv5:#fffdf8;--iv1:#f8f4eb;--iv2:#eee6d8;--ink:#292321;--ink2:#4f4540;--line:#d7cab9;--ok:#287a55;--warn:#a66107}
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 "Segoe UI",Arial,sans-serif;background:var(--iv1);color:var(--ink)}
@@ -33,7 +32,7 @@ details.sug{border:2px solid var(--warn);border-radius:12px;background:#fff8e6;p
 .s{border-top:1px solid #ecd9a8;padding:10px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.s .t{flex:1 1 380px}.s select{width:auto;min-width:210px}
 .ng{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}.ng .card{margin:0}.ng h3{margin:0 0 2px;color:var(--red9)}
 .ico{border-left:4px solid var(--red7);padding:3px 10px;margin:6px 0;font-size:14px}
-#map{height:520px;border-radius:10px;background:var(--iv2)}.lg{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0}.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px #8a8178}
+#mapBox{min-height:200px}.lg{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0}.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px #8a8178}
 .modal{display:none;position:fixed;inset:0;background:#2923218c;align-items:center;justify-content:center;padding:14px;z-index:999}.modal.show{display:flex}
 .dlg{background:var(--iv5);border-radius:12px;max-width:700px;width:100%;max-height:92vh;overflow:auto;padding:20px}.dlg h2{margin:0 0 12px;color:var(--red9)}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}details.more{margin-top:14px}details.more summary{cursor:pointer;font-weight:600}
@@ -43,6 +42,13 @@ footer{padding:10px 0 30px;color:var(--ink2);font-size:14px}footer button{margin
 </style>
 </head>
 <body>
+<script>
+window.__ok=false;window.__err=false;
+function __banner(t){var d=document.createElement("div");d.setAttribute("role","alert");d.style.cssText="background:#a3122b;color:#fff;padding:12px 16px;font:15px Arial;font-weight:600";d.textContent=t;document.body.insertBefore(d,document.body.firstChild)}
+window.onerror=function(m,s,l){window.__err=true;__banner("Chyba aplikace: "+m+" (řádek "+l+"). Pošli mi tento text.")};
+setTimeout(function(){if(!window.__ok&&!window.__err)__banner("Skript aplikace se nespustil. Pravděpodobně ho blokuje zabezpečení prohlížeče nebo sítě.")},1500);
+</script>
+<noscript><div style="background:#a3122b;color:#fff;padding:12px">V prohlížeči je vypnutý JavaScript, aplikace nemůže fungovat.</div></noscript>
 <header><div><h1>Network Atlas</h1><p>Jedna tabulka zákazníků. Síť je jen štítek, podle kterého je spojíš.</p></div><span class="sp"></span>
 <button class="ghost" data-act="imp">Import</button><button class="ghost" data-act="csv">Export do Excelu</button><button class="ghost" data-act="bak">Záloha</button></header>
 <div class="wrap">
@@ -58,14 +64,13 @@ footer{padding:10px 0 30px;color:var(--ink2);font-size:14px}footer button{margin
 
 <section id="nets" class="hidden"><div class="bar"><span class="muted" id="netInfo"></span><span class="sp"></span><button data-act="addN">+ Nová síť</button></div><div id="nGrid" class="ng"></div></section>
 
-<section id="mapv" class="hidden"><div class="card"><div class="bar"><select id="fMap" aria-label="Síť na mapě"></select><span class="muted" id="mapInfo"></span></div><div id="lg" class="lg"></div><div id="map"></div></div></section>
+<section id="mapv" class="hidden"><div class="card"><div class="bar"><select id="fMap" aria-label="Síť na mapě"></select><span class="muted" id="mapInfo"></span></div><div id="lg" class="lg"></div><div id="mapBox"></div></div></section>
 
 <footer>Data jsou uložena jen v tomto prohlížeči. Pravidelně dělej „Zálohu“. <br><br><button class="ghost sm" data-act="demo">Obnovit ukázková data</button><button class="bad sm" data-act="clear">Smazat vše</button></footer>
 </div>
 
 <div id="modal" class="modal"><div class="dlg"><h2 id="mt"></h2><form id="mf"><div id="mb"></div><div class="acts"><button type="button" class="ghost" data-act="close">Zrušit</button><button type="submit" id="mok">Uložit</button></div></form></div></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const KEY='networkAtlas.v3',$=i=>document.getElementById(i),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -119,14 +124,13 @@ const none=db.customers.filter(c=>!netOf(c));$('netInfo').textContent=db.network
 $('nGrid').innerHTML=(none.length?card('Bez sítě','Zákazníci, které zatím nemáš přiřazené',none,null):'')+db.networks.map(n=>card(n.name,'Manažer sítě: '+esc(n.manager||'neuveden'),db.customers.filter(c=>c.networkId===n.id),n)).join('')}
 /* ---------- mapa ---------- */
 const PAL=['#a3122b','#1f5fbf','#287a55','#c27a00','#6b3fa0','#0a8a96','#a8326e','#5c6b2f'],col=nid=>{const i=db.networks.findIndex(n=>n.id===nid);return i<0?'#7d746b':PAL[i%PAL.length]};
-let map,lay;
-function renderMap(){if(typeof L==='undefined'){$('map').innerHTML='<div class="empty">Mapa potřebuje připojení k internetu.</div>';return}
-if(!map){map=L.map('map').setView([49.8,15.5],7);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);lay=L.layerGroup().addTo(map)}
-const fm=$('fMap'),v=fm.value;fm.innerHTML='<option value="">Všechny sítě</option><option value="none">Jen bez sítě</option>'+db.networks.map(n=>`<option value="${n.id}">${esc(n.name)}</option>`).join('');fm.value=[...fm.options].some(o=>o.value===v)?v:'';
-lay.clearLayers();const b=[];let miss=0;
-db.customers.filter(c=>!fm.value||(fm.value==='none'?!netOf(c):c.networkId===fm.value)).forEach(c=>{const a=parseFloat(c.lat),o=parseFloat(c.lng);if(!isFinite(a)||!isFinite(o)){miss++;return}b.push([a,o]);L.circleMarker([a,o],{radius:10,color:'#fff',weight:3,fillColor:col(c.networkId),fillOpacity:1}).bindPopup(`<b>${esc(c.name)}</b><br>IČO ${esc(c.ico)}<br>Síť: <b>${esc(netOf(c)?.name||'bez sítě')}</b><br>Manažer sítě: ${esc(netOf(c)?.manager||'–')}<br>Zástupce: ${esc(c.rep||'–')}<br>${esc([c.street,c.city].filter(Boolean).join(', '))}`).addTo(lay)});
-$('mapInfo').textContent=`Na mapě: ${b.length}`+(miss?` · bez souřadnic: ${miss} (doplníš v úpravě zákazníka)`:'' );
-$('lg').innerHTML=[...db.networks.map(n=>[n.id,n.name]),['','Bez sítě']].map(([i,n])=>`<span><span class="dot" style="background:${col(i)}"></span>${esc(n)}</span>`).join('');if(b.length)map.fitBounds(b,{padding:[40,40],maxZoom:12)} }
+function renderMap(){const fm=$('fMap'),v=fm.value;fm.innerHTML='<option value="">Všechny sítě</option><option value="none">Jen bez sítě</option>'+db.networks.map(n=>`<option value="${n.id}">${esc(n.name)}</option>`).join('');fm.value=[...fm.options].some(o=>o.value===v)?v:'';
+const pts=[];let miss=0;db.customers.filter(c=>!fm.value||(fm.value==='none'?!netOf(c):c.networkId===fm.value)).forEach(c=>{const a=parseFloat(c.lat),o=parseFloat(c.lng);if(!isFinite(a)||!isFinite(o)){miss++;return}pts.push({c,a,o})});
+if(!pts.length)$('mapBox').innerHTML='<div class="empty">Žádný zákazník nemá souřadnice. Doplň je v úpravě zákazníka (zeměpisná šířka a délka).</div>';
+else{const W=900,H=520,P=60,la=pts.map(p=>p.a),lo=pts.map(p=>p.o),y0=Math.min(...la),y1=Math.max(...la),x0=Math.min(...lo),x1=Math.max(...lo),k=Math.cos(Math.PI/180*(y0+y1)/2),s=Math.min((W-2*P)/Math.max((x1-x0)*k,.05),(H-2*P)/Math.max(y1-y0,.05)),X=o=>W/2+(o-(x0+x1)/2)*k*s,Y=a=>H/2-(a-(y0+y1)/2)*s;
+$('mapBox').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Poloha podniků" style="width:100%;background:#fff;border:1px solid var(--line);border-radius:10px">${pts.map(p=>`<a href="https://mapy.cz/zakladni?x=${p.o}&amp;y=${p.a}&amp;z=15&amp;source=coor&amp;id=${p.o}%2C${p.a}" target="_blank" rel="noopener"><circle cx="${X(p.o).toFixed(1)}" cy="${Y(p.a).toFixed(1)}" r="10" fill="${col(p.c.networkId)}" stroke="#fff" stroke-width="3"><title>${esc(p.c.name)} – ${esc(netOf(p.c)?.name||'bez sítě')}</title></circle><text x="${(X(p.o)+15).toFixed(1)}" y="${(Y(p.a)+4).toFixed(1)}" font-size="13" fill="#292321">${esc(p.c.name.slice(0,26))}</text></a>`).join('')}</svg><p class="muted">Schematické rozmístění podle souřadnic. Kliknutím na bod otevřeš místo na Mapy.cz.</p>`}
+$('mapInfo').textContent=`Zobrazeno: ${pts.length}`+(miss?` · bez souřadnic: ${miss} (doplníš v úpravě zákazníka)`:'');
+$('lg').innerHTML=[...db.networks.map(n=>[n.id,n.name]),['','Bez sítě']].map(([i,n])=>`<span><span class="dot" style="background:${col(i)}"></span>${esc(n)}</span>`).join('')}
 /* ---------- formuláře ---------- */
 const FC=[['name','Název podniku',1],['ico','IČO',1],['networkId','Síť','net'],['rep','Obchodní zástupce'],['street','Ulice'],['city','Město'],['zip','PSČ']],FD=[['owner','Jednatel / vlastník (více oddělte středníkem)'],['web','Web'],['email','E-mail'],['phone','Telefon'],['bank','Bankovní účet'],['lat','Zeměpisná šířka'],['lng','Zeměpisná délka']];
 const fld=(f,r)=>{const[k,l,o]=f,v=r[k]??'';return `<div><label for="f_${k}">${l}${o===1?' *':''}</label>${o==='net'?`<select id="f_${k}" name="${k}">${netOpts(v)}</select>`:`<input id="f_${k}" name="${k}" value="${esc(v)}" ${o===1?'required':''} ${k==='ico'?'inputmode="numeric" pattern="[0-9 ]{1,10}" title="IČO má 8 číslic"':''}>`}</div>`};
@@ -158,8 +162,8 @@ function dl(name,txt,type){const a=document.createElement('a');a.href=URL.create
 function expCSV(){const q=v=>/[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v,H=['Název','IČO','Síť','Manažer sítě','Zástupce','Ulice','Město','PSČ','Jednatel','Web','E-mail','Telefon','Účet','Lat','Lng'];
 dl('zakaznici.csv','\uFEFF'+[H.join(';'),...db.customers.map(c=>[c.name,c.ico,netOf(c)?.name,netOf(c)?.manager,c.rep,c.street,c.city,c.zip,c.owner,c.web,c.email,c.phone,c.bank,c.lat,c.lng].map(v=>q(String(v??''))).join(';'))].join('\r\n'),'text/csv;charset=utf-8')}
 /* ---------- ovládání ---------- */
-function tab(v){['cust','nets','mapv'].forEach(i=>$(i).classList.toggle('hidden',i!==v));document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===v));if(v==='mapv')setTimeout(()=>{renderMap();map&&map.invalidateSize()},60)}
-function renderAll(){renderCust();renderSug();renderNets();if(map&&!$('mapv').classList.contains('hidden'))renderMap()}
+function tab(v){['cust','nets','mapv'].forEach(i=>$(i).classList.toggle('hidden',i!==v));document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===v));if(v==='mapv')renderMap()}
+function renderAll(){renderCust();renderSug();renderNets();if(!$('mapv').classList.contains('hidden'))renderMap()}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
 if(a==='tab')tab(b.dataset.v);else if(a==='addC')formC('');else if(a==='edit')formC(id);else if(a==='addN')formN('');else if(a==='editN')formN(id);else if(a==='close')closeM();else if(a==='imp')formI();else if(a==='csv')expCSV();
 else if(a==='bak')dl('network-atlas-zaloha.json',JSON.stringify(db,null,2),'application/json');
@@ -176,6 +180,6 @@ document.addEventListener('change',e=>{const b=e.target.closest('[data-act]');if
 else if(b.dataset.act==='selAll'){visible().forEach(c=>b.checked?sel.add(c.id):sel.delete(c.id));renderCust()}});
 $('q').oninput=renderCust;$('fNet').onchange=renderCust;$('fMap').onchange=renderMap;
 $('modal').onclick=e=>{if(e.target.id==='modal')closeM()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM()});
-tab('cust');save();
+tab('cust');save();window.__ok=true;
 </script>
 </body></html>
