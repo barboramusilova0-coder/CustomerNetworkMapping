@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Network Atlas</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--red9:#6f0b1c;--red7:#a3122b;--red1:#f8e2e6;--iv5:#fffdf8;--iv1:#f8f4eb;--iv2:#eee6d8;--ink:#292321;--ink2:#4f4540;--line:#d7cab9;--ok:#287a55;--warn:#a66107}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 "Segoe UI",Arial,sans-serif;background:var(--iv1);color:var(--ink)}
+button,.btn,input,select,textarea{font:inherit}
+button,.btn{min-height:42px;padding:8px 16px;border-radius:8px;border:1px solid var(--red7);background:var(--red7);color:#fff;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+button.ghost,.btn.ghost{background:var(--iv5);color:var(--red9);border-color:var(--line)}button.sm{min-height:34px;padding:4px 11px;font-size:14px}
+button.bad{background:var(--iv5);color:var(--red7);border-color:var(--red7)}
+:focus-visible{outline:3px solid #1f5fbf;outline-offset:2px}
+input,select,textarea{width:100%;min-height:42px;padding:8px 10px;border:1px solid #a89b8a;border-radius:8px;background:#fff;color:var(--ink)}
+input[type=checkbox]{width:20px;min-height:20px;height:20px}label{display:block;font-weight:600;margin-bottom:3px}
+header{background:linear-gradient(120deg,var(--red9),var(--red7));color:#fff;padding:16px 28px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:24px}header p{margin:0;color:#f6e3e6}header .sp{flex:1}
+header .ghost{background:#fff}
+.wrap{max-width:1300px;margin:auto;padding:18px}
+nav{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto}
+.tab{background:var(--iv5);color:var(--ink);border:2px solid var(--line);font-size:16px;padding:10px 22px}
+.tab[aria-selected=true]{background:var(--red7);color:#fff;border-color:var(--red7)}
+.card{background:var(--iv5);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.bar>input{max-width:340px}.bar>select{max-width:260px;width:auto}.sp{flex:1}
+.tw{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--iv2);vertical-align:middle}th{background:var(--iv2);color:var(--ink);font-size:14px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;background:var(--red1);color:var(--red9);font-weight:600;font-size:13px}.pill.none{background:#fdecc8;color:#7a4b00}
+.muted{color:var(--ink2)}.empty{padding:28px;text-align:center;color:var(--ink2)}
+.bulk{background:var(--red1);border:1px solid var(--red7);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.bulk select{width:auto;min-width:230px}
+details.sug{border:2px solid var(--warn);border-radius:12px;background:#fff8e6;padding:10px 14px;margin-bottom:14px}details.sug summary{cursor:pointer;font-weight:700;font-size:16px}
+.s{border-top:1px solid #ecd9a8;padding:10px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center}.s .t{flex:1 1 380px}.s select{width:auto;min-width:210px}
+.ng{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}.ng .card{margin:0}.ng h3{margin:0 0 2px;color:var(--red9)}
+.ico{border-left:4px solid var(--red7);padding:3px 10px;margin:6px 0;font-size:14px}
+#map{height:520px;border-radius:10px;background:var(--iv2)}.lg{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0}.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;border:2px solid #fff;box-shadow:0 0 0 1px #8a8178}
+.modal{display:none;position:fixed;inset:0;background:#2923218c;align-items:center;justify-content:center;padding:14px;z-index:999}.modal.show{display:flex}
+.dlg{background:var(--iv5);border-radius:12px;max-width:700px;width:100%;max-height:92vh;overflow:auto;padding:20px}.dlg h2{margin:0 0 12px;color:var(--red9)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}details.more{margin-top:14px}details.more summary{cursor:pointer;font-weight:600}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.hidden{display:none!important}
+footer{padding:10px 0 30px;color:var(--ink2);font-size:14px}footer button{margin-right:6px}
+@media(max-width:700px){.fg{grid-template-columns:1fr}header{padding:12px 14px}.wrap{padding:10px}.hm{display:none}}
+</style>
+</head>
+<body>
+<header><div><h1>Network Atlas</h1><p>Jedna tabulka zákazníků. Síť je jen štítek, podle kterého je spojíš.</p></div><span class="sp"></span>
+<button class="ghost" data-act="imp">Import</button><button class="ghost" data-act="csv">Export do Excelu</button><button class="ghost" data-act="bak">Záloha</button></header>
+<div class="wrap">
+<nav role="tablist"><button class="tab" role="tab" data-act="tab" data-v="cust">Zákazníci</button><button class="tab" role="tab" data-act="tab" data-v="nets">Sítě</button><button class="tab" role="tab" data-act="tab" data-v="mapv">Mapa</button></nav>
+
+<section id="cust">
+<details class="sug" id="sug" open></details>
+<div class="card">
+<div class="bar"><input id="q" type="search" placeholder="Hledat název, IČO, město, zástupce…" aria-label="Hledat"><select id="fNet" aria-label="Filtr sítě"></select><span class="sp"></span><button data-act="addC">+ Přidat zákazníka</button></div>
+<div id="bulk" class="bulk hidden"></div>
+<div id="cTable"></div>
+</div></section>
+
+<section id="nets" class="hidden"><div class="bar"><span class="muted" id="netInfo"></span><span class="sp"></span><button data-act="addN">+ Nová síť</button></div><div id="nGrid" class="ng"></div></section>
+
+<section id="mapv" class="hidden"><div class="card"><div class="bar"><select id="fMap" aria-label="Síť na mapě"></select><span class="muted" id="mapInfo"></span></div><div id="lg" class="lg"></div><div id="map"></div></div></section>
+
+<footer>Data jsou uložena jen v tomto prohlížeči. Pravidelně dělej „Zálohu“. <br><br><button class="ghost sm" data-act="demo">Obnovit ukázková data</button><button class="bad sm" data-act="clear">Smazat vše</button></footer>
+</div>
+
+<div id="modal" class="modal"><div class="dlg"><h2 id="mt"></h2><form id="mf"><div id="mb"></div><div class="acts"><button type="button" class="ghost" data-act="close">Zrušit</button><button type="submit" id="mok">Uložit</button></div></form></div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const KEY='networkAtlas.v3',$=i=>document.getElementById(i),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nrm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),toks=s=>nrm(s).replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean),list=v=>String(v??'').split(/[;,|]/).map(x=>x.trim()).filter(Boolean);
+/* ---------- ukázková data (fiktivní IČO, kromě AMBI CZ z jejich webu) ---------- */
+const C=(name,ico,nid,city,x={})=>({id:uid(),name,ico,networkId:nid,rep:'',street:'',city,zip:'',owner:'',web:'',email:'',phone:'',bank:'',lat:'',lng:'',...x});
+function mkDemo(){const t='n1',a='n2',P={lat:'50.0755',lng:'14.4378'};return{rejected:[],networks:[{id:t,name:'Together (tgthr.cz)',manager:'Petra Malá (ukázka)'},{id:a,name:'Ambiente (ambi.cz)',manager:'Jan Novák (ukázka)'}],customers:[
+C('Bruxx','99000001',t,'Praha',{rep:'Eva Veselá',...P}),C('Vinohradský Parlament','99000002',t,'Praha',{rep:'Eva Veselá',...P}),C('Sia restaurant','99000003',t,'Praha',{rep:'Eva Veselá',...P}),C('Mexická Holešovice','99000004',t,'Praha',{rep:'Eva Veselá',...P}),C('Struhadlo Pardubice','99000005',t,'Pardubice',{rep:'Tomáš Král',lat:'50.0343',lng:'15.7812'}),C('Cukrář Skála','99000006',t,'Praha',{rep:'Eva Veselá',...P}),C('Foodway Catering','99000007',t,'Praha',{rep:'Eva Veselá'}),
+C('AMBI CZ, s.r.o.','63984881',a,'Praha',{street:'Maiselova 38/15',zip:'110 00',rep:'Eva Veselá',lat:'50.0896',lng:'14.4182'}),C('Restaurace Ambiente Brno (ukázka)','99000101',a,'Brno',{rep:'Tomáš Král',lat:'49.1951',lng:'16.6068'}),
+C('Pivnice Modrý Dvůr s.r.o. (ukázka)','99000201','','Plzeň',{owner:'Petr Král',web:'modrydvur.cz',lat:'49.7384',lng:'13.3736'}),C('Bistro Modrý Dvůr Brno s.r.o. (ukázka)','99000202','','Brno',{owner:'Král Petr',email:'brno@modrydvur.cz',lat:'49.2',lng:'16.61'}),C('Zahrada Plus s.r.o. (ukázka)','99000301','','Olomouc',{owner:'Karel Nový'})]}}
+let db=load();
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.customers)return x}catch(e){}
+try{const o=JSON.parse(localStorage.getItem('customerNetworkMap.v1'));if(o&&o.stores&&(o.stores.length>2||o.networks.length>1))return migrate(o)}catch(e){}return mkDemo()}
+function migrate(o){const E=i=>o.entities.find(e=>e.id===i)||{},d={rejected:[],networks:o.networks.map(n=>({id:n.id,name:n.name,manager:n.manager||''})),customers:[]};
+o.stores.forEach(s=>{const e=E(s.entityId);d.customers.push(C(s.name,e.ico||'',e.networkId||'',s.city||e.city||'',{rep:s.rep||'',street:s.street||'',zip:s.zip||'',lat:s.lat||'',lng:s.lng||''}))});
+o.entities.filter(e=>!o.stores.some(s=>s.entityId===e.id)).forEach(e=>d.customers.push(C(e.name,e.ico,e.networkId||'',e.city||'')));return d}
+function save(){db.rejected=db.rejected||[];try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}renderAll()}
+const netById=i=>db.networks.find(n=>n.id===i),netOf=c=>netById(c.networkId);
+/* ---------- přiřazení sítě: platí pro všechny řádky se stejným IČO ---------- */
+function setNet(icos,nid){db.customers.forEach(c=>{if(icos.has(c.ico))c.networkId=nid});}
+function mkNet(){const n=prompt('Název nové sítě:');if(!n||!n.trim())return null;const o={id:uid(),name:n.trim(),manager:''};db.networks.push(o);return o.id}
+const netOpts=(sel='',pre=[])=>'<option value="">— bez sítě —</option>'+db.networks.map(n=>`<option value="${n.id}" ${n.id===sel?'selected':''}>${esc(n.name)}</option>`).join('');
+/* ---------- zákazníci ---------- */
+const sel=new Set();let filt='';
+function visible(){const q=nrm($('q').value),f=$('fNet').value;return db.customers.filter(c=>(!q||nrm([c.name,c.ico,c.city,c.rep,c.owner,c.web].join(' ')).includes(q))&&(!f||(f==='none'?!netOf(c):c.networkId===f))).sort((a,b)=>(netOf(a)?.name||'~').localeCompare(netOf(b)?.name||'~','cs')||a.name.localeCompare(b.name,'cs'))}
+function renderCust(){const f=$('fNet'),v=f.value;f.innerHTML='<option value="">Všechny sítě</option><option value="none">Jen bez sítě</option>'+db.networks.map(n=>`<option value="${n.id}">${esc(n.name)}</option>`).join('');f.value=[...f.options].some(o=>o.value===v)?v:'';
+const d=visible();[...sel].forEach(i=>{if(!db.customers.some(c=>c.id===i))sel.delete(i)});
+$('cTable').innerHTML=d.length?`<div class="tw"><table><thead><tr><th><input type="checkbox" data-act="selAll" aria-label="Označit vše" ${d.every(c=>sel.has(c.id))?'checked':''}></th><th>Podnik</th><th>IČO</th><th>Síť</th><th class="hm">Město</th><th class="hm">Zástupce</th><th></th></tr></thead><tbody>${d.map(c=>`<tr><td><input type="checkbox" data-act="sel" data-id="${c.id}" ${sel.has(c.id)?'checked':''} aria-label="Označit ${esc(c.name)}"></td><td><b>${esc(c.name)}</b></td><td>${esc(c.ico)}</td><td>${netOf(c)?`<span class="pill">${esc(netOf(c).name)}</span>`:'<span class="pill none">bez sítě</span>'}</td><td class="hm">${esc(c.city)}</td><td class="hm">${esc(c.rep)||'–'}</td><td><button class="ghost sm" data-act="edit" data-id="${c.id}">Upravit</button></td></tr>`).join('')}</tbody></table></div><p class="muted">${d.length} z ${db.customers.length} · bez sítě: ${db.customers.filter(c=>!netOf(c)).length}</p>`:'<div class="empty">Nic nenalezeno. Přidej zákazníka nebo použij Import.</div>';
+const b=$('bulk');b.classList.toggle('hidden',!sel.size);b.innerHTML=`<b>Označeno: ${sel.size}</b><select id="bn" aria-label="Síť">${netOpts()}<option value="new">+ Nová síť…</option></select><button data-act="assign">Přiřadit do sítě</button><button class="ghost" data-act="clr">Zrušit označení</button>`}
+/* ---------- návrhy sítí (stejná síť, jiné IČO) ---------- */
+const STOP=new Set('sro as spol vos ks se cz czech group holding praha brno ostrava plzen morava cechy'.split(' ')),GEN=new Set('auto servis obchod trade prodej restaurace bistro pivnice hotel system service stav'.split(' ')),FREE=new Set(['gmail.com','seznam.cz','email.cz','centrum.cz','volny.cz','post.cz','outlook.com','hotmail.com','icloud.com','yahoo.com','atlas.cz']);
+const inter=(a,b)=>[...a].filter(x=>b.has(x)),pk=(a,b)=>[a,b].sort().join('~');
+function dom(v){v=nrm(v).trim();if(!v)return'';v=v.includes('@')?v.split('@').pop():v.replace(/^[a-z]+:\/\//,'').replace(/^www\./,'');v=v.split(/[\/?#\s]/)[0];const p=v.split('.');return p.length>=2?p.slice(-2).join('.'):''}
+function sig(g){const r=g.rows,all=k=>r.flatMap(c=>list(c[k])),s={};
+s.domain=new Set([...all('web'),...all('email')].map(dom).filter(d=>d&&!FREE.has(d)));s.owner=new Set(all('owner').map(x=>toks(x).sort().join(' ')).filter(x=>x.includes(' ')));
+s.bank=new Set(all('bank').map(x=>nrm(x).replace(/[^0-9\/]/g,'')).filter(x=>x.length>=6));s.phone=new Set(all('phone').map(x=>x.replace(/\D/g,'').slice(-9)).filter(x=>x.length===9));
+s.addr=new Set(r.filter(c=>c.street).map(c=>toks(c.street).join(' ')+'|'+toks(c.city).join(' ')));
+const ct=new Set(toks(r[0].city));s.core=toks(r[0].name).filter(t=>t.length>1&&!STOP.has(t)&&!GEN.has(t)&&!ct.has(t));return s}
+const W={owner:[40,'společný jednatel/vlastník'],domain:[35,'společná doména'],bank:[35,'stejný účet'],phone:[25,'společný telefon'],addr:[25,'stejná adresa']};
+function pair(a,b){let ev=[],sc=0;for(const k in W){const m=inter(a[k],b[k]);if(m.length){sc+=W[k][0];ev.push(W[k][1]+' <b>'+esc(m[0].replace('|',', '))+'</b>')}}
+const x=a.core,y=b.core;if(x.length&&y.length&&x[0]===y[0]&&x[0].length>=3){sc+=30;ev.push('podobný název <b>'+esc(x[0])+'</b>')}return{sc,ev}}
+function suggestions(){const g={};db.customers.forEach(c=>c.ico&&(g[c.ico]=g[c.ico]||{ico:c.ico,rows:[]}).rows.push(c));const G=Object.values(g),S=G.map(sig),p=G.map((_,i)=>i),f=i=>p[i]===i?i:(p[i]=f(p[i])),rej=new Set(db.rejected||[]),pr=[];
+for(let i=0;i<G.length;i++)for(let j=i+1;j<G.length;j++){if(rej.has(pk(G[i].ico,G[j].ico)))continue;const r=pair(S[i],S[j]);if(r.sc>=50){pr.push({i,j,...r});p[f(i)]=f(j)}}
+const o={};G.forEach((x,i)=>(o[f(i)]=o[f(i)]||{m:[],ev:new Set}).m.push(x));pr.forEach(x=>x.ev.forEach(e=>o[f(x.i)].ev.add(e)));
+return Object.values(o).filter(c=>c.m.length>1).map(c=>{c.nets=[...new Set(c.m.map(x=>netOf(x.rows[0])?.id).filter(Boolean))];c.done=c.nets.length===1&&c.m.every(x=>netOf(x.rows[0]));return c}).filter(c=>!c.done)}
+let SG=[];
+function renderSug(){SG=suggestions();const d=$('sug');d.classList.toggle('hidden',!SG.length);d.innerHTML=`<summary>Možná patří k jedné síti (${SG.length})</summary>`+SG.map((c,k)=>`<div class="s"><div class="t"><b>${c.m.map(x=>esc(x.rows[0].name)).join(' · ')}</b><br><span class="muted">${[...c.ev].slice(0,3).join(', ')}</span></div><select id="sg${k}" aria-label="Síť">${c.nets.map(n=>`<option value="${n}">${esc(netById(n).name)}</option>`).join('')}<option value="new">+ Nová síť…</option>${db.networks.filter(n=>!c.nets.includes(n.id)).map(n=>`<option value="${n.id}">${esc(n.name)}</option>`).join('')}</select><button class="sm" data-act="sgOk" data-k="${k}">Spojit do sítě</button><button class="bad sm" data-act="sgNo" data-k="${k}">Není to jedna síť</button></div>`).join('')}
+/* ---------- sítě ---------- */
+function renderNets(){const card=(title,sub,rows,n)=>{const g={};rows.forEach(c=>(g[c.ico]=g[c.ico]||[]).push(c));return `<div class="card"><h3>${esc(title)}</h3><div class="muted">${sub}</div><p><b>${Object.keys(g).length}</b> IČO · <b>${rows.length}</b> podniků</p>${Object.entries(g).map(([i,r])=>`<div class="ico"><b>${esc(i)}</b> ${r.map(c=>esc(c.name)).join(', ')}</div>`).join('')||'<div class="muted">Zatím žádní zákazníci.</div>'}<div class="bar" style="margin:10px 0 0">${n?`<button class="ghost sm" data-act="show" data-id="${n.id}">Zobrazit v tabulce</button><button class="ghost sm" data-act="editN" data-id="${n.id}">Upravit</button><button class="bad sm" data-act="delN" data-id="${n.id}">Smazat síť</button>`:'<button class="ghost sm" data-act="show" data-id="none">Zobrazit v tabulce</button>'}</div></div>`};
+const none=db.customers.filter(c=>!netOf(c));$('netInfo').textContent=db.networks.length+' sítí';
+$('nGrid').innerHTML=(none.length?card('Bez sítě','Zákazníci, které zatím nemáš přiřazené',none,null):'')+db.networks.map(n=>card(n.name,'Manažer sítě: '+esc(n.manager||'neuveden'),db.customers.filter(c=>c.networkId===n.id),n)).join('')}
+/* ---------- mapa ---------- */
+const PAL=['#a3122b','#1f5fbf','#287a55','#c27a00','#6b3fa0','#0a8a96','#a8326e','#5c6b2f'],col=nid=>{const i=db.networks.findIndex(n=>n.id===nid);return i<0?'#7d746b':PAL[i%PAL.length]};
+let map,lay;
+function renderMap(){if(typeof L==='undefined'){$('map').innerHTML='<div class="empty">Mapa potřebuje připojení k internetu.</div>';return}
+if(!map){map=L.map('map').setView([49.8,15.5],7);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);lay=L.layerGroup().addTo(map)}
+const fm=$('fMap'),v=fm.value;fm.innerHTML='<option value="">Všechny sítě</option><option value="none">Jen bez sítě</option>'+db.networks.map(n=>`<option value="${n.id}">${esc(n.name)}</option>`).join('');fm.value=[...fm.options].some(o=>o.value===v)?v:'';
+lay.clearLayers();const b=[];let miss=0;
+db.customers.filter(c=>!fm.value||(fm.value==='none'?!netOf(c):c.networkId===fm.value)).forEach(c=>{const a=parseFloat(c.lat),o=parseFloat(c.lng);if(!isFinite(a)||!isFinite(o)){miss++;return}b.push([a,o]);L.circleMarker([a,o],{radius:10,color:'#fff',weight:3,fillColor:col(c.networkId),fillOpacity:1}).bindPopup(`<b>${esc(c.name)}</b><br>IČO ${esc(c.ico)}<br>Síť: <b>${esc(netOf(c)?.name||'bez sítě')}</b><br>Manažer sítě: ${esc(netOf(c)?.manager||'–')}<br>Zástupce: ${esc(c.rep||'–')}<br>${esc([c.street,c.city].filter(Boolean).join(', '))}`).addTo(lay)});
+$('mapInfo').textContent=`Na mapě: ${b.length}`+(miss?` · bez souřadnic: ${miss} (doplníš v úpravě zákazníka)`:'' );
+$('lg').innerHTML=[...db.networks.map(n=>[n.id,n.name]),['','Bez sítě']].map(([i,n])=>`<span><span class="dot" style="background:${col(i)}"></span>${esc(n)}</span>`).join('');if(b.length)map.fitBounds(b,{padding:[40,40],maxZoom:12)} }
+/* ---------- formuláře ---------- */
+const FC=[['name','Název podniku',1],['ico','IČO',1],['networkId','Síť','net'],['rep','Obchodní zástupce'],['street','Ulice'],['city','Město'],['zip','PSČ']],FD=[['owner','Jednatel / vlastník (více oddělte středníkem)'],['web','Web'],['email','E-mail'],['phone','Telefon'],['bank','Bankovní účet'],['lat','Zeměpisná šířka'],['lng','Zeměpisná délka']];
+const fld=(f,r)=>{const[k,l,o]=f,v=r[k]??'';return `<div><label for="f_${k}">${l}${o===1?' *':''}</label>${o==='net'?`<select id="f_${k}" name="${k}">${netOpts(v)}</select>`:`<input id="f_${k}" name="${k}" value="${esc(v)}" ${o===1?'required':''} ${k==='ico'?'inputmode="numeric" pattern="[0-9 ]{1,10}" title="IČO má 8 číslic"':''}>`}</div>`};
+let mode='';
+function openM(t,title,html,ok='Uložit'){mode=t;$('mt').textContent=title;$('mb').innerHTML=html;$('mok').textContent=ok;$('modal').classList.add('show');setTimeout(()=>$('mb').querySelector('input,textarea,select')?.focus(),30)}
+const closeM=()=>$('modal').classList.remove('show');
+function formC(id){const r=db.customers.find(c=>c.id===id)||{};mode='c:'+id;openM('c:'+id,id?'Upravit zákazníka':'Nový zákazník',`<div class="fg">${FC.map(f=>fld(f,r)).join('')}</div><details class="more" ${FD.some(f=>r[f[0]])?'open':''}><summary>Údaje, které pomáhají najít síť (jednatel, web, e-mail, GPS…)</summary><div class="fg" style="margin-top:10px">${FD.map(f=>fld(f,r)).join('')}</div></details>${id?'<p><button type="button" class="bad sm" data-act="delC" data-id="'+id+'">Smazat zákazníka</button></p>':''}`)}
+function formN(id){const r=netById(id)||{};openM('n:'+id,id?'Upravit síť':'Nová síť',`<div class="fg"><div><label>Název sítě *</label><input name="name" required value="${esc(r.name)}"></div><div><label>Manažer celé sítě</label><input name="manager" value="${esc(r.manager)}"></div></div>`)}
+function formI(){openM('i','Import zákazníků',`<p>Zkopíruj z Excelu tabulku <b>včetně hlavičky</b> a vlož sem (nebo vyber soubor CSV / JSON zálohu). Povinné sloupce: <b>IČO</b> a <b>Název</b>. Volitelné: Síť, Město, Ulice, PSČ, Zástupce, Jednatel, Web, E-mail, Telefon, Účet, Lat, Lng. Neznámé sítě se založí samy.</p><textarea id="impT" rows="8" placeholder="IČO&#9;Název&#9;Síť&#9;Město"></textarea><p><input type="file" id="impF" accept=".csv,.txt,.json" aria-label="Soubor"></p>`,'Importovat')}
+$('mf').onsubmit=e=>{e.preventDefault();const o=Object.fromEntries(new FormData(e.target).entries()),[t,id]=mode.split(':');
+if(mode==='i')return doImport();
+if(t==='n'){if(id)Object.assign(netById(id),o);else db.networks.push({id:uid(),...o})}
+else{o.ico=String(o.ico).replace(/\s/g,'');if(!/^\d{1,8}$/.test(o.ico))return alert('IČO musí mít 1–8 číslic.');o.ico=o.ico.padStart(8,'0');
+const old=db.customers.find(c=>c.id===id);if(old)Object.assign(old,o);else db.customers.push({id:uid(),...o});if(o.networkId)setNet(new Set([o.ico]),o.networkId)}
+save();closeM()};
+/* ---------- import / export ---------- */
+function parseCSV(t){t=t.replace(/^\uFEFF/,'');const d=[';','\t',','].map(c=>[c,t.split('\n')[0].split(c).length]).sort((a,b)=>b[1]-a[1])[0][0],rows=[];let r=[],c='',q=false;
+for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=h}else if(h==='"')q=true;else if(h===d){r.push(c);c=''}else if(h==='\n'||h==='\r'){if(h==='\r'&&t[i+1]==='\n')i++;r.push(c);c='';if(r.some(x=>x.trim()))rows.push(r);r=[]}else c+=h}r.push(c);if(r.some(x=>x.trim()))rows.push(r);return rows}
+const AL={ico:['ico','ic'],name:['nazev','podnik','firma','spolecnost','restaurace','name'],network:['sit','network'],city:['mesto','obec'],street:['ulice','adresa'],zip:['psc'],rep:['zastupce','obchodni zastupce'],owner:['jednatel','vlastnik','jednatel vlastnik'],web:['web','www','domena'],email:['email','e mail'],phone:['telefon','tel'],bank:['ucet','bankovni ucet'],lat:['lat','sirka','zemepisna sirka'],lng:['lng','lon','delka','zemepisna delka']};
+async function doImport(){try{const f=$('impF').files[0];let t=f?await f.text():$('impT').value;if(!t.trim())return;
+if(t.trim()[0]==='{'){const x=JSON.parse(t);if(!Array.isArray(x.customers)||!Array.isArray(x.networks))throw Error('Neplatná záloha.');if(!confirm('Nahradit všechna data zálohou?'))return;db=x;save();closeM();return}
+const rows=parseCSV(t),hd=rows[0].map(x=>toks(x).join(' ')),col={};for(const k in AL){const i=hd.findIndex(h=>AL[k].includes(h));if(i>=0)col[k]=i}
+if(col.ico==null||col.name==null)throw Error('Chybí sloupec IČO nebo Název.');let add=0,upd=0;
+rows.slice(1).forEach(r=>{const o={};for(const k in col)o[k]=(r[col[k]]||'').trim();o.ico=(o.ico||'').replace(/\s/g,'').padStart(8,'0');if(o.ico==='00000000'||!o.name)return;
+let nid='';if(o.network){let n=db.networks.find(n=>nrm(n.name)===nrm(o.network));if(!n){n={id:uid(),name:o.network,manager:''};db.networks.push(n)}nid=n.id}delete o.network;
+const ex=db.customers.find(c=>c.ico===o.ico&&nrm(c.name)===nrm(o.name));if(ex){let ch=false;for(const k in o)if(o[k]&&!ex[k]){ex[k]=o[k];ch=true}if(nid&&!ex.networkId){ex.networkId=nid;ch=true}ch&&upd++}else{db.customers.push(C(o.name,o.ico,nid,'',o));add++}});
+save();closeM();alert(`Hotovo: ${add} nových, ${upd} doplněno.`)}catch(e){alert('Import se nezdařil. '+(e.message||''))}}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+function expCSV(){const q=v=>/[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v,H=['Název','IČO','Síť','Manažer sítě','Zástupce','Ulice','Město','PSČ','Jednatel','Web','E-mail','Telefon','Účet','Lat','Lng'];
+dl('zakaznici.csv','\uFEFF'+[H.join(';'),...db.customers.map(c=>[c.name,c.ico,netOf(c)?.name,netOf(c)?.manager,c.rep,c.street,c.city,c.zip,c.owner,c.web,c.email,c.phone,c.bank,c.lat,c.lng].map(v=>q(String(v??''))).join(';'))].join('\r\n'),'text/csv;charset=utf-8')}
+/* ---------- ovládání ---------- */
+function tab(v){['cust','nets','mapv'].forEach(i=>$(i).classList.toggle('hidden',i!==v));document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===v));if(v==='mapv')setTimeout(()=>{renderMap();map&&map.invalidateSize()},60)}
+function renderAll(){renderCust();renderSug();renderNets();if(map&&!$('mapv').classList.contains('hidden'))renderMap()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
+if(a==='tab')tab(b.dataset.v);else if(a==='addC')formC('');else if(a==='edit')formC(id);else if(a==='addN')formN('');else if(a==='editN')formN(id);else if(a==='close')closeM();else if(a==='imp')formI();else if(a==='csv')expCSV();
+else if(a==='bak')dl('network-atlas-zaloha.json',JSON.stringify(db,null,2),'application/json');
+else if(a==='delC'){if(confirm('Smazat zákazníka?')){db.customers=db.customers.filter(c=>c.id!==id);save();closeM()}}
+else if(a==='delN'){if(confirm('Smazat síť? Zákazníci zůstanou, jen budou bez sítě.')){db.customers.forEach(c=>{if(c.networkId===id)c.networkId=''});db.networks=db.networks.filter(n=>n.id!==id);save()}}
+else if(a==='show'){tab('cust');$('fNet').value=id;renderCust()}
+else if(a==='clr'){sel.clear();renderCust()}
+else if(a==='assign'){let n=$('bn').value;if(n==='new'){n=mkNet();if(!n)return}setNet(new Set(db.customers.filter(c=>sel.has(c.id)).map(c=>c.ico)),n);sel.clear();save()}
+else if(a==='sgOk'){const c=SG[b.dataset.k];let n=$('sg'+b.dataset.k).value;if(n==='new'){n=mkNet();if(!n)return}setNet(new Set(c.m.map(x=>x.ico)),n);save()}
+else if(a==='sgNo'){const m=SG[b.dataset.k].m;db.rejected=db.rejected||[];for(let i=0;i<m.length;i++)for(let j=i+1;j<m.length;j++)db.rejected.push(pk(m[i].ico,m[j].ico));save()}
+else if(a==='demo'){if(confirm('Nahradit data ukázkovými?')){db=mkDemo();sel.clear();save()}}
+else if(a==='clear'){if(confirm('Opravdu smazat všechna data? Nejdřív si udělej Zálohu.')){db={rejected:[],networks:[],customers:[]};sel.clear();save()}}});
+document.addEventListener('change',e=>{const b=e.target.closest('[data-act]');if(!b)return;if(b.dataset.act==='sel'){b.checked?sel.add(b.dataset.id):sel.delete(b.dataset.id);renderCust()}
+else if(b.dataset.act==='selAll'){visible().forEach(c=>b.checked?sel.add(c.id):sel.delete(c.id));renderCust()}});
+$('q').oninput=renderCust;$('fNet').onchange=renderCust;$('fMap').onchange=renderMap;
+$('modal').onclick=e=>{if(e.target.id==='modal')closeM()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM()});
+tab('cust');save();
+</script>
+</body></html>
